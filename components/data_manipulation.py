@@ -8,10 +8,9 @@ pivotTable_aggfunc = {'mean': mean,
                       'var': var,
                       'std': std,
                       'sum': sum,
-                      'min': min, 
+                      'min': min,
                       'max': max
                       }
-
 
 def col_with_none():
     options = ['none']
@@ -25,9 +24,15 @@ def validate_col_value(val):
         return None
     return val
 
-# cols = st.session_state['columns']
-# data = st.session_state['df']
-# cols_none = col_with_none()
+def catch_exception(func):
+    def wrapper(*args, **kwargs):
+        try: 
+            func(*args, **kwargs)
+        except:
+            error = "error processing function ..."
+            st.write(error)
+    return wrapper
+
 
 def Melt(expander=True):
     cols = st.session_state['columns']
@@ -86,9 +91,9 @@ def PivotTable(expander=True):
         Multiselect(lbl="index", options=cols,
                     key="pivotTable_index", default=cols[0])
         Selectbox(lbl="columns", options=cols_none, key="pivotTable_columns")
-        Multiselect(lbl="values", options=cols_none, key="pivotTable_values", default=cols[1])
+        Multiselect(lbl="values", options=cols_none,
+                    key="pivotTable_values", default=cols[1])
         values = st.session_state['pivotTable_values']
-        #create item based on selected option
         if len(values) > 0:
             st.write("aggfunc")
             for val in values:
@@ -100,12 +105,10 @@ def PivotTable(expander=True):
                   False, True], key="pivotTable_margins")
         Selectbox(lbl="observed", options=[
                   False, True], key="pivotTable_observed")
-        # retrieve values
         aggfunc = {}
         if len(values) > 0:
             for val in values:
                 aggfunc[val] = st.session_state["pivotTable_aggfunc_"+val]
-        #print(aggfunc)
         index = st.session_state['pivotTable_index']
         columns = validate_col_value(st.session_state['pivotTable_columns'])
         dropna = st.session_state['pivotTable_dropna']
@@ -116,9 +119,7 @@ def PivotTable(expander=True):
             df = pivot_table(data=data, index=index, columns=columns, dropna=dropna,
                              values=values, aggfunc=aggfunc, margins=margins, observed=observed)
             st.dataframe(df)
-            #print(df)
         except ValueError as e:
-            # st.write(e)
             st.write("No key passed.")
         except:
             st.write("Error updating pivot_table")
@@ -132,44 +133,36 @@ def PivotTable(expander=True):
 def CrossTab(expander=True):
     cols = st.session_state['columns']
     data = st.session_state['df']
+
     def index():
         aggfuncOpt = list(pivotTable_aggfunc.keys())
         Selectbox(lbl="index", options=cols,
-                    key="crossTab_index")
+                  key="crossTab_index")
         Selectbox(lbl="columns", options=cols,
-                    key="crossTab_columns")
-        # Multiselect(lbl="values", options=cols, key="crossTab_values", default=cols[1])
-        # values = st.session_state['crossTab_values']
-        # if len(values) > 0:
-        #     st.write("aggfunc")
-        #     for val in values:
-        #         Multiselect(lbl=val, options=aggfuncOpt, default=aggfuncOpt[0],
-        #                     key="crossTab_aggfunc_"+val)
+                  key="crossTab_columns")
         Selectbox(lbl="dropna", options=[True, False], key="crossTab_dropna")
         Selectbox(lbl="margins", options=[
                   False, True], key="crossTab_margins")
-        Selectbox(lbl="normalize", options=[False, True, 'all', 'index', 'columns'], key="crossTab_normalize")
-        # aggfunc = {}
-        # if len(values) > 0:
-        #     for val in values:
-        #         aggfunc[val] = st.session_state["crossTab_aggfunc_"+val]
-        
+        Selectbox(lbl="normalize", options=[
+                  False, True, 'all', 'index', 'columns'], key="crossTab_normalize")
+
         index = array(data[st.session_state['crossTab_index']]).flatten()
         columns = array(data[st.session_state['crossTab_columns']]).flatten()
-        # valuess = array(data[st.session_state['crossTab_values']]).flatten()
         dropna = st.session_state['crossTab_dropna']
         margins = st.session_state['crossTab_margins']
         normalize = st.session_state['crossTab_normalize']
         try:
-            df = crosstab(index=index, columns=columns, dropna=dropna, normalize=normalize)
+            df = crosstab(index=index, columns=columns,
+                          dropna=dropna, normalize=normalize)
             st.dataframe(df)
         except:
             st.write("Error updating pivot_table")
-        
+
     if expander:
         with st.expander("crosstab"):
             return index()
     return index()
+
 
 def Cut(expander=True):
     cols = st.session_state['columns']
